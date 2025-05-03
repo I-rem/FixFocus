@@ -22,3 +22,7 @@ Make sure you have Python (or Anaconda). In your terminal then:
 `pip install -r requirements.txt`
 
 `python gui.py`
+
+### 2. To exit
+Click on the window
+Then `Esc`
