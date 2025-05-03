@@ -27,3 +27,4 @@ tk.Button(app, text="📁 Open Distraction Log", font=("Arial", 12), width=20, c
 tk.Button(app, text="❌ Exit", font=("Arial", 12), width=20, command=app.quit).pack(pady=5)
 
 app.mainloop()
+

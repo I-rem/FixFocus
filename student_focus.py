@@ -4,6 +4,9 @@ import numpy as np
 import time
 import csv
 from datetime import datetime
+#from playsound import playsound
+import pygame
+import threading
 
 mp_face_mesh = mp.solutions.face_mesh
 mp_drawing = mp.solutions.drawing_utils
@@ -13,12 +16,18 @@ RIGHT_EYE = [386, 374]
 NOSE_TIP = 1
 
 log_file = "distraction_log.csv"
+alert_sound = "uyari.mp3"
 
 def log_distraction(reason):
     now = datetime.now().strftime("%H:%M:%S")
     with open(log_file, "a", newline="") as file:
         writer = csv.writer(file)
         writer.writerow([now, reason])
+
+def play_alert():
+    pygame.mixer.init()
+    pygame.mixer.music.load("uyari.mp3")
+    pygame.mixer.music.play()
 
 def eye_aspect_ratio(landmarks, eye_indices):
     p1 = np.array([landmarks[eye_indices[0]].x, landmarks[eye_indices[0]].y])
@@ -91,6 +100,7 @@ def main():
 
             if status != "Focused":
                 log_distraction(status)
+                play_alert()
 
             prev_status = status
             last_switch = now
@@ -100,7 +110,7 @@ def main():
                     cv2.FONT_HERSHEY_SIMPLEX, 1.2, color, 2)
         cv2.imshow('Focus', frame)
 
-        if cv2.waitKey(1) & 0xFF == 27:  # ESC 
+        if cv2.waitKey(1) & 0xFF == 27:  # ESC to exit
             now = time.time()
             if prev_status == "Focused":
                 focus_time += now - last_switch
