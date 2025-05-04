@@ -16,15 +16,15 @@ class DikkatTakibiApp(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        # Mediapipe face mesh
+        
         self.mp_face_mesh = mp.solutions.face_mesh
         self.face_mesh = self.mp_face_mesh.FaceMesh(refine_landmarks=True)
         self.mp_drawing = mp.solutions.drawing_utils
         self.cap = cv2.VideoCapture(0)
 
-        # Set a higher resolution for the camera
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)  # Set the width to 1280
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)  # Set the height to 720
+        
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)  
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)  
 
         self.dikkatli = 0
         self.dikkatsiz = 0
@@ -33,7 +33,7 @@ class DikkatTakibiApp(QMainWindow):
         self.dikkatsiz_start_time = None
 
         self.setWindowTitle("🧠 Dikkat Takibi")
-        self.setGeometry(100, 100, 1280, 800)  # Adjust the main window size
+        self.setGeometry(100, 100, 1280, 800)  
 
         # Menü çubuğu
         self.menu_bar = self.menuBar()
@@ -69,7 +69,7 @@ class DikkatTakibiApp(QMainWindow):
         self.skor_label.setStyleSheet("font-size: 20px; color: #2ECC71; font-weight: bold;")
         self.uyari_label.setStyleSheet("font-size: 20px; color: #E74C3C; font-weight: bold;")
 
-        # Layout oluşturuluyor
+        # Layout 
         info_layout = QHBoxLayout()
         info_layout.addWidget(self.skor_label)
         info_layout.addWidget(self.uyari_label)
@@ -96,7 +96,7 @@ class DikkatTakibiApp(QMainWindow):
 
         # Varsayılan tema light mode
         self.is_dark_mode = False
-        self.load_theme("C:\\Users\\windows\\Desktop\\yzta\\FixFocus\\fixDetect\\style\\light_mode.qss")
+        self.load_theme("\\style\\light_mode.qss")
 
         # Menü çubuğunu pencerede göster
         self.setMenuBar(self.menu_bar)
@@ -126,12 +126,12 @@ class DikkatTakibiApp(QMainWindow):
 
     def set_light_theme(self):
         """Light tema uygular."""
-        self.load_theme("C:\\Users\\windows\\Desktop\\yzta\\FixFocus\\fixDetect\\style\\light_mode.qss")
+        self.load_theme("\\style\\light_mode.qss")
         self.is_dark_mode = False
 
     def set_dark_theme(self):
         """Dark tema uygular."""
-        self.load_theme("C:\\Users\\windows\\Desktop\\yzta\\FixFocus\\fixDetect\\style\\dark_mode.qss")
+        self.load_theme("C\\style\\dark_mode.qss")
         self.is_dark_mode = True
 
     def open_graph_window(self):
