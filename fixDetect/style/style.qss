@@ -1,0 +1,58 @@
+/* Menü çubuğu stili */
+QMenuBar {
+    background-color: #f0f0f0;
+    padding: 10px;
+    font-size: 14px;
+}
+
+QMenuBar::item {
+    spacing: 15px; /* Menü öğeleri arasındaki boşluğu artırdık */
+    padding: 5px 15px;
+    background: transparent;
+    border-radius: 4px;
+}
+
+QMenuBar::item:selected {
+    background: #0078d7;
+    color: white;
+}
+
+/* Menü stili */
+QMenu {
+    background-color: #f8f8f8;
+    border: 1px solid #d4d4d4;
+    padding: 10px;
+    font-size: 16px;
+    width: 250px; /* Menü genişliğini artırdık */
+}
+
+QMenu::item {
+    padding: 10px 20px; /* Menü öğesi genişliği ve padding artırıldı */
+}
+
+QMenu::item:selected {
+    background-color: #0078d7;
+    color: white;
+}
+
+/* Diğer genel stil ayarları */
+QWidget {
+    font-size: 14px;
+    color: #333;
+    background-color: #ffffff;
+}
+
+QLabel {
+    font-size: 16px;
+}
+
+QPushButton {
+    background-color: #0078d7;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+}
+
+QPushButton:hover {
+    background-color: #005bb5;
+}
