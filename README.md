@@ -1,6 +1,6 @@
-# 🎯 Name-In-Progress
+# 🎯 Fix Focus
 
-**Name-In-Progress** is an AI-powered attention tracker for students in online classes.  
+**Fix Focus** is an AI-powered attention tracker for students in online classes.  
 It uses your webcam to detect signs of distraction like closed eyes, looking away, or no face visible — and logs them with alerts.
 
 ---
