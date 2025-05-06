@@ -7,8 +7,11 @@ import time
 import math
 import matplotlib.pyplot as plt
 from PyQt5.QtCore import QTimer, Qt
-from PyQt5.QtGui import QImage, QPixmap, QColor
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QVBoxLayout, QHBoxLayout, QMenuBar, QAction, QMenu, QMessageBox
+from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QLabel, QVBoxLayout,
+    QHBoxLayout, QMenuBar, QAction, QMenu, QMessageBox, QPushButton
+)
 from PyQt5.QtMultimedia import QSound
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 
@@ -16,40 +19,36 @@ class DikkatTakibiApp(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        
         self.mp_face_mesh = mp.solutions.face_mesh
         self.face_mesh = self.mp_face_mesh.FaceMesh(refine_landmarks=True)
         self.mp_drawing = mp.solutions.drawing_utils
         self.cap = cv2.VideoCapture(0)
 
-        
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)  
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)  
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
         self.dikkatli = 0
         self.dikkatsiz = 0
         self.uyari_sayisi = 0
+        self.dikkatsiz_warning_shown = False  
         self.start_time = time.time()
         self.dikkatsiz_start_time = None
 
         self.setWindowTitle("🧠 Dikkat Takibi")
-        self.setGeometry(100, 100, 1280, 800)  
+        self.setGeometry(100, 100, 1280, 800)
 
         # Menü çubuğu
         self.menu_bar = self.menuBar()
 
-        # Ayarlar menüsü
         self.settings_menu = self.create_menu("Ayarlar", self.menu_bar)
         self.menu_bar.addMenu(self.settings_menu)
 
-        # Grafik menüsü
         self.graph_menu = self.create_menu("Grafikler", self.settings_menu)
         self.graph_action_show = QAction("Grafiği Göster", self)
         self.graph_action_show.triggered.connect(self.open_graph_window)
         self.graph_menu.addAction(self.graph_action_show)
         self.settings_menu.addMenu(self.graph_menu)
 
-        # Tema menüsü
         self.theme_menu = self.create_menu("Tema", self.settings_menu)
         self.theme_action_light = QAction("Light Tema", self)
         self.theme_action_light.triggered.connect(self.set_light_theme)
@@ -69,12 +68,32 @@ class DikkatTakibiApp(QMainWindow):
         self.skor_label.setStyleSheet("font-size: 20px; color: #2ECC71; font-weight: bold;")
         self.uyari_label.setStyleSheet("font-size: 20px; color: #E74C3C; font-weight: bold;")
 
-        # Layout 
+        # Start, Stop ve Çıkış butonları
+        self.start_button = QPushButton("Başlat")
+        self.start_button.setStyleSheet("font-size: 18px; padding: 10px; background-color: blue; color: white; border-radius: 10px;")
+        self.start_button.clicked.connect(self.start_session)
+
+        self.stop_button = QPushButton("Durdur")
+        self.stop_button.setStyleSheet("font-size: 18px; padding: 10px; background-color: #8BC34A; color: white; border-radius: 10px;")
+        self.stop_button.setEnabled(False)
+        self.stop_button.clicked.connect(self.stop_session)
+
+        self.exit_button = QPushButton("Çıkış")
+        self.exit_button.setStyleSheet("font-size: 18px; padding: 10px; background-color: #E91E63; color: white; border-radius: 10px;")
+        self.exit_button.clicked.connect(self.close)
+
+        # Layout
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.start_button)
+        button_layout.addWidget(self.stop_button)
+        button_layout.addWidget(self.exit_button)
+
         info_layout = QHBoxLayout()
         info_layout.addWidget(self.skor_label)
         info_layout.addWidget(self.uyari_label)
 
         self.layout = QVBoxLayout()
+        self.layout.addLayout(button_layout)
         self.layout.addLayout(info_layout)
         self.layout.addWidget(self.video_label)
 
@@ -82,42 +101,45 @@ class DikkatTakibiApp(QMainWindow):
         widget.setLayout(self.layout)
         self.setCentralWidget(widget)
 
-        # Timer
+        # Timer Start Session ile başlar
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
-        self.timer.start(30)
 
-        # Verileri tutacak listeler
         self.skor_data = []
         self.time_data = []
 
-        # Grafik penceresi
         self.graph_window = None
 
-        # Varsayılan tema light mode
         self.is_dark_mode = False
-        self.load_theme("\\style\\light_mode.qss")
+        self.load_theme("style/light_mode.qss")
 
-        # Menü çubuğunu pencerede göster
         self.setMenuBar(self.menu_bar)
 
-        # Sesli uyarı
-        self.sound = QSound("uyari.mp3")
+        self.sound = QSound(os.path.join(os.getcwd(), "uyari.mp3"))
 
-        # Log dosyası
         self.csv_file = "log.csv"
         if not os.path.exists(self.csv_file):
             with open(self.csv_file, "w", newline="") as file:
                 writer = csv.writer(file)
                 writer.writerow(["Zaman", "Dikkatli", "Dikkatsiz", "Skor", "Uyari Sayisi"])
 
+    def start_session(self):
+        self.start_button.setEnabled(False)
+        self.stop_button.setEnabled(True)
+        self.timer.start(5)
+
+    def stop_session(self):
+        self.start_button.setEnabled(True)
+        self.stop_button.setEnabled(False)
+        self.timer.stop()
+
+        # Özet penceresi
+        self.show_summary()
+
     def create_menu(self, menu_name, parent_menu):
-        """Özel bir menü oluştur ve genişliği artır."""
-        menu = QMenu(menu_name, parent_menu)
-        return menu
+        return QMenu(menu_name, parent_menu)
 
     def load_theme(self, theme_file):
-        """Belirtilen QSS dosyasını yükler ve uygular."""
         try:
             with open(theme_file, "r") as file:
                 self.setStyleSheet(file.read())
@@ -125,29 +147,24 @@ class DikkatTakibiApp(QMainWindow):
             print(f"Hata: '{theme_file}' dosyası bulunamadı.")
 
     def set_light_theme(self):
-        """Light tema uygular."""
-        self.load_theme("\\style\\light_mode.qss")
+        self.load_theme("style\\light_mode.qss")
         self.is_dark_mode = False
 
     def set_dark_theme(self):
-        """Dark tema uygular."""
-        self.load_theme("C\\style\\dark_mode.qss")
+        self.load_theme("style\\dark_mode.qss")
         self.is_dark_mode = True
 
     def open_graph_window(self):
-        """Grafiği ayrı bir pencerede göster."""
         if self.graph_window is None:
             self.graph_window = QWidget()
             self.graph_window.setWindowTitle("Dikkat Grafiği")
             self.graph_window.setGeometry(200, 200, 600, 400)
 
-            # Matplotlib Widget'i oluştur
             self.fig, self.ax = plt.subplots(figsize=(5, 3))
             self.ax.set_title("Dikkat Durumu")
             self.ax.set_xlabel("Zaman (sn)")
             self.ax.set_ylabel("Dikkatli Yüzdesi")
 
-            # Grafik widget'i
             self.canvas = FigureCanvas(self.fig)
             layout = QVBoxLayout()
             layout.addWidget(self.canvas)
@@ -157,7 +174,6 @@ class DikkatTakibiApp(QMainWindow):
         self.update_graph()
 
     def update_graph(self):
-        """Grafiği güncelle."""
         if self.graph_window and self.graph_window.isVisible():
             self.ax.clear()
             self.ax.plot(self.time_data, self.skor_data, label="Dikkat Skoru", color="green")
@@ -183,26 +199,28 @@ class DikkatTakibiApp(QMainWindow):
         results = self.face_mesh.process(rgb_frame)
 
         durum = ""
-        renk = (255, 255, 0)
+        renk = (255, 255, 255)  
 
         if results.multi_face_landmarks:
             for face_landmarks in results.multi_face_landmarks:
+                
                 self.mp_drawing.draw_landmarks(
                     frame, face_landmarks, self.mp_face_mesh.FACEMESH_CONTOURS,
-                    self.mp_drawing.DrawingSpec(color=(0, 255, 0), thickness=1, circle_radius=1)
+                    self.mp_drawing.DrawingSpec(color=(0, 204, 255), thickness=2, circle_radius=2)  
                 )
+
                 pitch = self.calculate_head_pose(face_landmarks.landmark)
                 if pitch < 10:
                     self.dikkatli += 1
                     self.dikkatsiz_start_time = None
                     durum = "Dikkatli"
-                    renk = (0, 255, 0)
+                    renk = (0, 255, 0)  
                 else:
                     self.dikkatsiz += 1
                     if self.dikkatsiz_start_time is None:
                         self.dikkatsiz_start_time = time.time()
                     durum = "Dikkatsiz"
-                    renk = (0, 0, 255)
+                    renk = (255, 0, 0)  
 
                 cv2.putText(frame, durum, (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, renk, 2)
 
@@ -211,49 +229,61 @@ class DikkatTakibiApp(QMainWindow):
         except ZeroDivisionError:
             skor = 0.0
 
-        # GUI metin güncelleme
         self.skor_label.setText(f"Skor: %{skor:.1f}")
         self.uyari_label.setText(f"Uyarı Sayısı: {self.uyari_sayisi}")
 
-        # PyQt video güncelle
         height, width, channel = frame.shape
         q_image = QImage(frame.data, width, height, 3 * width, QImage.Format_BGR888)
         self.video_label.setPixmap(QPixmap.fromImage(q_image))
-
-        # Dynamically adjust the green border size to match the camera frame size
         self.video_label.setStyleSheet(f"border: 5px solid #4CAF50; border-radius: 10px; "
                                        f"width: {width}px; height: {height}px;")
 
-        # Verileri kaydet
         self.skor_data.append(skor)
         self.time_data.append(time.time() - self.start_time)
 
-        # Grafik güncelle
         self.update_graph()
 
-        # Log dosyasına yaz
         with open(self.csv_file, "a", newline="") as file:
             writer = csv.writer(file)
             writer.writerow([time.strftime("%H:%M:%S"), self.dikkatli, self.dikkatsiz, f"%{skor:.1f}", self.uyari_sayisi])
 
-        # Dikkatsiz süre kontrolü
         self.check_dikkatsiz_sure()
 
     def check_dikkatsiz_sure(self):
         if self.dikkatsiz_start_time:
             elapsed = time.time() - self.dikkatsiz_start_time
-            if elapsed >= 30:
+            if elapsed >= 5 and not self.dikkatsiz_warning_shown:
                 self.show_dikkatsiz_bildirim()
+                self.dikkatsiz_warning_shown = True
                 self.dikkatsiz_start_time = None
+            elif elapsed < 5:
+                self.dikkatsiz_warning_shown = False
 
     def show_dikkatsiz_bildirim(self):
-        self.uyari_sayisi += 1
+        QMessageBox.warning(self, "Dikkatsizlik Uyarısı", "5 saniye boyunca dikkatsiz kalındı!")
         self.sound.play()
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Warning)
-        msg.setText("Dikkatsizsiniz!")
-        msg.setWindowTitle("Uyarı")
-        msg.exec_()
+        self.uyari_sayisi += 1  
+
+    def show_summary(self):
+        total_time = time.time() - self.start_time
+
+        
+        try:
+            dikkatli_orani = (self.dikkatli / (self.dikkatli + self.dikkatsiz)) * 100
+        except ZeroDivisionError:
+            dikkatli_orani = 0.0
+        
+        try:
+            dikkatsiz_orani = (self.dikkatsiz / (self.dikkatli + self.dikkatsiz)) * 100
+        except ZeroDivisionError:
+            dikkatsiz_orani = 0.0
+
+        summary_msg = f"Toplam Süre: {total_time:.2f} saniye\n"
+        summary_msg += f"Dikkatli Olma Oranı: %{dikkatli_orani:.1f}\n"
+        summary_msg += f"Dikkatsiz Olma Oranı: %{dikkatsiz_orani:.1f}\n"
+        summary_msg += f"Toplam Uyarı: {self.uyari_sayisi}"
+
+        QMessageBox.information(self, "Dikkat Takibi Özeti", summary_msg)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
